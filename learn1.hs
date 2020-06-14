@@ -98,4 +98,10 @@ main = do
     print (fst (1, 2))
     print (snd (1, 2))
     print (zip [1 .. 5] [5 .. 12])
-    print [ (a,b,c) | c <- [1..10], b <- [1..c], a <- [1..b], a^2 + b^2 == c^2] 
+    print
+        [ (a, b, c)
+        | c <- [1 .. 10]
+        , b <- [1 .. c]
+        , a <- [1 .. b]
+        , a ^ 2 + b ^ 2 == c ^ 2
+        ]

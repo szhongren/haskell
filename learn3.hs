@@ -89,6 +89,9 @@ bmiTell'' weight height | bmi <= skinny = "you are underweight"
 
 
 
+
+
+
   where
     bmi                   = weight / height ^ 2
     (skinny, normal, fat) = (18.5, 25.0, 30.0)
@@ -113,6 +116,25 @@ cylinder r h =
 
 calcBmis' :: (RealFloat a) => [(a, a)] -> [a]
 calcBmis' xs = [ bmi | (w, h) <- xs, let bmi = w / h ^ 2 ]
+
+-- case
+head'' :: [a] -> a
+head'' xs = case xs of
+    []      -> error "No head"
+    (x : _) -> x
+
+describeList :: [a] -> String
+describeList xs = "The list is " ++ case xs of
+    []  -> "empty."
+    [x] -> "a singleton list."
+    xs  -> "a longer list."
+
+describeList' :: [a] -> String
+describeList' xs = "The list is " ++ what xs
+  where
+    what []  = "empty."
+    what [x] = "a singleton list."
+    what xs  = "a longer list."
 
 main = do
     print [ lucky x | x <- [1 .. 10] ]
@@ -163,3 +185,11 @@ main = do
         )
     print ((let (a, b, c) = (1, 2, 3) in a + b + c) * 100)
     print (calcBmis' [(85, 1.9), (89, 1.9)])
+
+    -- case
+    print (describeList [])
+    print (describeList' [])
+    print (describeList [1])
+    print (describeList' [1])
+    print (describeList [1, 2])
+    print (describeList' [1, 2])
