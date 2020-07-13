@@ -92,6 +92,7 @@ bmiTell'' weight height | bmi <= skinny = "you are underweight"
 
 
 
+
   where
     bmi                   = weight / height ^ 2
     (skinny, normal, fat) = (18.5, 25.0, 30.0)
