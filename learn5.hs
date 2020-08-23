@@ -1,6 +1,8 @@
+-- currying
 multThree :: (Num a) => a -> a -> a -> a
 multThree x y z = x * y * z
 
+-- partial application
 multTwoWithNine :: (Num a) => a -> a -> a
 multTwoWithNine = multThree 9
 
@@ -58,6 +60,7 @@ numLongChains = length (filter isLong (map chain [1 .. 100]))
   where
     isLong xs = length xs > 15
 
+-- lambdas
 numLongChains' :: Int
 numLongChains' = length (filter (\xs -> length xs > 15) (map chain [1 .. 100]))
 
@@ -69,6 +72,37 @@ addThree' = \x -> \y -> \z -> x + y + z
 
 flip''' :: (a -> b -> c) -> b -> a -> c
 flip''' f = \x y -> f y x
+
+-- folds
+sum' :: (Num a) => [a] -> a
+sum' xs = foldl (\acc x -> acc + x) 0 xs
+
+sum'' :: (Num a) => [a] -> a
+sum'' xs = foldl (+) 0 xs
+
+elem' :: (Eq a) => a -> [a] -> Bool
+elem' y ys = foldl (\acc x -> if x == y then True else acc) False ys
+
+map' :: (a -> b) -> [a] -> [b]
+map' f xs = foldr (\x acc -> f x : acc) [] xs
+
+maximum' :: (Ord a) => [a] -> a
+maximum' = foldr1 (\x acc -> if x > acc then x else acc)
+
+reverse' :: [a] -> [a]
+reverse' = foldl (\acc x -> x : acc) []
+
+product' :: (Num a) => [a] -> a
+product' = foldr1 (*)
+
+filter' :: (a -> Bool) -> [a] -> [a]
+filter' p = foldr (\x acc -> if p x then x : acc else acc) []
+
+head' :: [a] -> a
+head' = foldr1 (\x _ -> x)
+
+last' :: [a] -> a
+last' = foldl1 (\_ x -> x)
 
 main = do
   print (multThree 1 2 3)
@@ -104,3 +138,20 @@ main = do
   print numLongChains'
   print (zipWith (\a b -> (a * 30 + 3) / b) [5, 4, 3, 2, 1] [1, 2, 3, 4, 5])
   print (map (\(a, b) -> a + b) [(1, 2), (3, 5), (6, 3), (2, 6), (2, 5)])
+  print (sum' [3, 5, 2, 1])
+  print (sum'' [3, 5, 2, 1])
+  -- scanl and scanr shows the intermediate accumulators in a list
+  print (scanl (+) 0 [3, 5, 2, 1])
+  print (scanr (+) 0 [3, 5, 2, 1])
+  print (scanl1 (\acc x -> if x > acc then x else acc) [3, 4, 5, 3, 7, 9, 2, 1])
+  print (scanl (flip (:)) [] [3, 2, 1])
+  -- function application operator
+  -- right-associative
+  -- evaluates the right expression first before passing to the left
+  print (sum $ map sqrt [1 .. 130])
+  print (map ($ 3) [(4 +), (10 *), (^ 2), sqrt])
+  -- function composition
+  -- . reads as "after"
+  print (map (negate . abs) [5, -3, -6, 7, -3, 2, -19, 24])
+  print (map (negate . sum . tail) [[1..5], [3..6], [1..7]]
+  print (replicate 100 . product . map (*3) . zipWith max [1..5] $ [4..8])
