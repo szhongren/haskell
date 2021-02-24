@@ -1,3 +1,4 @@
 write some code
-read some stuff
 relax
+git gud
+to the moon
