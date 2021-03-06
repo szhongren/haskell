@@ -4,6 +4,7 @@ import Data.List
 import System.Directory
 import System.Environment
 import System.IO
+import System.Random
 
 reverseWords :: String -> String
 reverseWords = unwords . map reverse . words
@@ -66,6 +67,35 @@ remove [fileName, numberString] = do
   hClose tempHandle
   removeFile fileName
   renameFile tempName fileName
+
+threeCoins :: StdGen -> (Bool, Bool, Bool)
+threeCoins gen =
+  let (firstCoin, newGen) = random gen
+      (secondCoin, newGen') = random newGen
+      (thirdCoin, newGen'') = random newGen'
+   in (firstCoin, secondCoin, thirdCoin)
+
+-- randoms' :: (RandomGen g, Random a) => g -> [a]
+-- randoms' gen = let (value, newGen) = random gen in value : randoms' newStdGen
+
+-- finiteRandoms :: (RandomGen g, Random a, Num n) => n -> g -> ([a], g)
+-- finiteRandoms 0 gen = ([], gen)
+-- finiteRandoms n gen =
+--   let (value, newGen) = random gen
+--       (restOfList, finalGen) = finiteRandoms (n -1) newGen
+--    in (value : restOfList, finalGen)
+
+askForNumber :: StdGen -> IO ()
+askForNumber gen = do
+  let (randNumber, newGen) = randomR (1, 10) gen :: (Int, StdGen)
+  putStrLn "Which number in the range from 1 to 10 am I thinking of? "
+  numberString <- getLine
+  when (not $ null numberString) $ do
+    let number = read numberString
+    if randNumber == number
+      then putStrLn "You are correct!"
+      else putStrLn $ "Sorry, it was " ++ show randNumber
+    askForNumber newGen
 
 getName = do
   putStrLn "Hello, what is your name?"
@@ -234,4 +264,53 @@ dispatchCommand = do
   let (Just action) = lookup command dispatch
   action args
 
-main = dispatchCommand
+randomTest = do
+  print (random (mkStdGen 100) :: (Int, StdGen))
+  print (random (mkStdGen 949494) :: (Int, StdGen))
+  print (threeCoins (mkStdGen 21))
+  print (threeCoins (mkStdGen 22))
+  print (threeCoins (mkStdGen 943))
+  print (threeCoins (mkStdGen 944))
+  print (take 5 $ randoms (mkStdGen 11) :: [Int])
+  print (take 5 $ randoms (mkStdGen 11) :: [Bool])
+  print (take 5 $ randoms (mkStdGen 11) :: [Float])
+  print (randomR (1, 6) (mkStdGen 359353) :: (Int, StdGen))
+  print (randomR (1, 6) (mkStdGen 35935335) :: (Int, StdGen))
+  print (take 10 $ randomRs ('a', 'z') (mkStdGen 3) :: [Char])
+
+generateRandomString = do
+  gen <- getStdGen
+  putStr $ take 20 (randomRs ('a', 'z') gen)
+
+generate2RandomString = do
+  gen <- getStdGen
+  let randomChars = randomRs ('a', 'z') gen
+      (first20, rest) = splitAt 20 randomChars
+      (second20, _) = splitAt 20 rest
+  putStrLn first20
+  putStrLn second20
+
+generate2RandomString' = do
+  gen <- getStdGen
+  putStrLn $ take 20 (randomRs ('a', 'z') gen)
+  gen' <- newStdGen
+  putStrLn $ take 20 (randomRs ('a', 'z') gen')
+
+guessNumber = do
+  gen <- getStdGen
+  askForNumber gen
+
+guessNumber' = do
+  gen <- getStdGen
+  let (randNumber, _) = randomR (1, 10) gen :: (Int, StdGen)
+  putStrLn "Which number in the range from 1 to 10 am I thinking of? "
+  numberString <- getLine
+  when (not $ null numberString) $ do
+    let number = read numberString
+    if randNumber == number
+      then putStrLn "You are correct!"
+      else putStrLn $ "Sorry, it was " ++ show randNumber
+    newStdGen
+    main
+
+main = guessNumber'
