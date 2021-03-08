@@ -1,9 +1,13 @@
+import Control.Exception
 import Control.Monad
+import qualified Data.ByteString as S
+import qualified Data.ByteString.Lazy as B
 import Data.Char
 import Data.List
 import System.Directory
 import System.Environment
 import System.IO
+import System.IO.Error
 import System.Random
 
 reverseWords :: String -> String
@@ -96,6 +100,11 @@ askForNumber gen = do
       then putStrLn "You are correct!"
       else putStrLn $ "Sorry, it was " ++ show randNumber
     askForNumber newGen
+
+copyFile :: FilePath -> FilePath -> IO ()
+copyFile source dest = do
+  contents <- B.readFile source
+  B.writeFile dest contents
 
 getName = do
   putStrLn "Hello, what is your name?"
@@ -313,4 +322,48 @@ guessNumber' = do
     newStdGen
     main
 
-main = guessNumber'
+bytestringTest = do
+  print (B.pack [99, 97, 110])
+  print (B.pack [98 .. 120])
+  print (B.fromChunks [S.pack [40, 41, 42], S.pack [43, 44, 45], S.pack [46, 47, 48]])
+  print (B.cons 85 $ B.pack [80, 81, 82, 84])
+  print (B.cons' 85 $ B.pack [80, 81, 82, 84])
+  print (foldr B.cons B.empty [50 .. 60])
+  print (foldr B.cons' B.empty [50 .. 60])
+
+cpFile = do
+  (fileName1 : fileName2 : _) <- getArgs
+  Main.copyFile fileName1 fileName2
+
+readFileFromName = do
+  (fileName : _) <- getArgs
+  contents <- readFile fileName
+  putStrLn $ "The file has " ++ show (length (lines contents)) ++ " lines!"
+
+readFileFromName' = do
+  (fileName : _) <- getArgs
+  fileExists <- doesFileExist fileName
+  if fileExists
+    then do
+      contents <- readFile fileName
+      putStrLn $ "The file has " ++ show (length (lines contents)) ++ " lines!"
+    else do putStrLn "The file doesn't exist!"
+
+readFileFromName'' =
+  catch toTry handler
+
+toTry :: IO ()
+toTry = do
+  (fileName : _) <- getArgs
+  contents <- readFile fileName
+  putStrLn $ "The file has " ++ show (length (lines contents)) ++ " lines!"
+
+handler :: IOError -> IO ()
+handler e
+  | isDoesNotExistError e =
+    case ioeGetFileName e of
+      Just path -> putStrLn $ "Whoops, file does not exist at: " ++ path
+      Nothing -> putStrLn "Whoops! File does not exist at unknown location!"
+  | otherwise = ioError e
+
+main = readFileFromName''
