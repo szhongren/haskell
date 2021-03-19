@@ -160,10 +160,10 @@ instance Show TrafficLight where
   show Yellow = "Yellow Light"
   show Green = "Green Light"
 
-class YesNo a where
+class YesNo a where -- define a typeclass and what needs to be defined on it
   yesno :: a -> Bool
 
-instance YesNo Int where
+instance YesNo Int where -- define Int as an instance of YesNo
   yesno 0 = False
   yesno _ = True
 
@@ -190,6 +190,9 @@ yesnoIf :: (YesNo y) => y -> a -> a -> a
 yesnoIf yesnoVal yesResult noResult = if yesno yesnoVal then yesResult else noResult
 
 class Functor' f where -- for things that can be mapped over, f is a type that takes one arg, and is not concrete
+  -- give me a function that makes a b from an a
+  -- and a computational context with an a in it
+  -- and I will return a computational context with a b in it
   fmap' :: (a -> b) -> f a -> f b
 
 instance Functor Tree where
