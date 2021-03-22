@@ -32,6 +32,22 @@ instance Functor CMaybe where
   fmap f CNothing = CNothing
   fmap f (CJust counter x) = CJust (counter + 1) (f x)
 
+-- class (Functor f) => Applicative f where
+--   -- all applicatives are functors
+--   pure :: a -> f a
+--   (<*>) :: f (a -> b) -> f a -> f b
+
+myAction :: IO String
+myAction = do
+  a <- getLine
+  b <- getLine
+  return $ a ++ b
+
+-- return takes the value and wraps it in an IO action
+
+myAction' :: IO String
+myAction' = (++) <$> getLine <*> getLine
+
 reverseLine = do
   line <- getLine
   let line' = reverse line
@@ -82,6 +98,8 @@ fgFmap = do
   print (fmap (+ 3) (fmap (* 5) (Just 5)))
   print (Just ((+ 3) ((* 5) 5)))
 
+-- does not obey functor laws, thus not a functor
+
 cMaybe = do
   print (CNothing :: CMaybe String)
   print (CJust 0 "Haha")
@@ -91,6 +109,34 @@ cMaybe = do
   print (fmap (++ "blah") CNothing)
   print (fmap id (CJust 0 "haha"))
   print (id (CJust 0 "haha"))
-  -- does not obey functor laws, thus not a functor
 
-main = cMaybe
+applicativeBasic = do
+  let a = fmap (*) [1, 2, 3, 4]
+  print (fmap (\f -> f 9) a)
+  print (Just (+ 3) <*> Just 9)
+  print (pure (+ 3) <*> Just 10)
+  print (Just (++ "hahaha") <*> Nothing)
+  print (Nothing <*> Just "woot" :: Maybe String)
+  print (pure (+) <*> Just 3 <*> Just 5)
+  print (pure (+) <*> Just 3 <*> Nothing)
+  print (pure (+) <*> Nothing <*> Just 5)
+  print (pure (+) <*> Just 3 <*> Just 5)
+  print (fmap (+) (Just 3) <*> (Just 5))
+  print ((+) <$> (Just 3) <*> (Just 5))
+  print ((++) <$> Just "johntra" <*> Just "volta")
+
+applicativeList = do
+  -- use a list comprehension to apply every function in first list to every arg in second
+  -- lists can be thought of as non-determistic functions, so <*> 2 lists returns a combination
+  print ([(* 0), (+ 100), (^ 2)] <*> [1, 2, 3])
+  print ([(+), (*)] <*> [1, 2] <*> [3, 4])
+  print ((++) <$> ["ha", "heh", "hmm"] <*> ["?", "!", "."])
+  print ([x * y | x <- [2, 5, 10], y <- [8, 10, 11]])
+  print ((*) <$> [2, 5, 10] <*> [8, 10, 11])
+  print (filter (> 50) $ (*) <$> [2, 5, 10] <*> [8, 10, 11])
+
+twoLinesConcat = do
+  a <- (++) <$> getLine <*> getLine
+  putStrLn $ "The two lines concatenated turn out to be: " ++ a
+
+main = twoLinesConcat

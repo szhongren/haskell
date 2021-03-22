@@ -128,7 +128,7 @@ revWords = do
     else do
       -- do will result in the same value as return does, an IO action
       putStrLn $ reverseWords line
-      main
+      revWords
 
 ioActions = do
   a <- return "hell"
@@ -151,14 +151,14 @@ eatTilSpace = do
   if c /= ' '
     then do
       putChar c
-      main
+      eatTilSpace
     else return ()
 
 eatTilSpace' = do
   c <- getChar
   when (c /= ' ') $ do
     putChar c
-    main
+    eatTilSpace'
 
 sequencePrint = do
   a <- getLine
@@ -320,7 +320,7 @@ guessNumber' = do
       then putStrLn "You are correct!"
       else putStrLn $ "Sorry, it was " ++ show randNumber
     newStdGen
-    main
+    guessNumber'
 
 bytestringTest = do
   print (B.pack [99, 97, 110])
