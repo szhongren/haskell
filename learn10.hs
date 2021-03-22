@@ -1,3 +1,4 @@
+import Control.Applicative
 import Data.Char
 import Data.List
 
@@ -23,6 +24,10 @@ instance Functor' ((->) r) where
 
 -- fmap' f g = \x -> f (g x)
 -- fmap' = (.)
+
+-- instance Applicative ((->) r) where
+--   pure x = (\_ -> x)
+--   f <*> g = \x -> f x (g x)
 
 data CMaybe a = CNothing | CJust Int a deriving (Show)
 
@@ -113,6 +118,7 @@ cMaybe = do
 applicativeBasic = do
   let a = fmap (*) [1, 2, 3, 4]
   print (fmap (\f -> f 9) a)
+  -- <*> is like an fmap that takes a function in a functor as well
   print (Just (+ 3) <*> Just 9)
   print (pure (+ 3) <*> Just 10)
   print (Just (++ "hahaha") <*> Nothing)
@@ -122,6 +128,7 @@ applicativeBasic = do
   print (pure (+) <*> Nothing <*> Just 5)
   print (pure (+) <*> Just 3 <*> Just 5)
   print (fmap (+) (Just 3) <*> (Just 5))
+  -- <$> is just fmap but infix
   print ((+) <$> (Just 3) <*> (Just 5))
   print ((++) <$> Just "johntra" <*> Just "volta")
 
@@ -139,4 +146,19 @@ twoLinesConcat = do
   a <- (++) <$> getLine <*> getLine
   putStrLn $ "The two lines concatenated turn out to be: " ++ a
 
-main = twoLinesConcat
+applicativeFunction = do
+  print (pure 3 "blah")
+  -- k <$> f <*> g creates a function that will call k with the eventual results of f and g
+  -- (+) <$> Just 3 <*> Just 5, means we use + on values that might or might not be there, which also results in a Maybe
+  -- (+) <$> (+10) <*> (+5), means we will use + on the future return values of (+10) and (+5), which also results in a single argument function
+  print ((+) <$> (+ 3) <*> (* 100) $ 5)
+  print ((\x y z -> [x, y, z]) <$> (+ 3) <*> (* 2) <*> (/ 2) $ 5)
+
+applicativeZipList = do
+  print (getZipList $ (+) <$> ZipList [1, 2, 3] <*> ZipList [100, 100, 100])
+  print (getZipList $ (+) <$> ZipList [1, 2, 3] <*> ZipList [100, 100 ..])
+  print (getZipList $ max <$> ZipList [1, 2, 3, 4, 5, 3] <*> ZipList [5, 3, 1, 2])
+  -- The (,,) function is the same as \x y z -> (x,y,z). Also, the (,) function is the same as \x y -> (x,y).
+  print (getZipList $ (,,) <$> ZipList "dog" <*> ZipList "cat" <*> ZipList "rat")
+
+main = applicativeZipList
