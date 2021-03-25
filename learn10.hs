@@ -13,6 +13,9 @@ instance Functor' Maybe where
   fmap' f (Just a) = Just (f a)
   fmap' f Nothing = Nothing
 
+instance Functor' [] where
+  fmap' = map
+
 instance Functor' IO where
   fmap' f action = do
     result <- action
@@ -24,10 +27,6 @@ instance Functor' ((->) r) where
 
 -- fmap' f g = \x -> f (g x)
 -- fmap' = (.)
-
--- instance Applicative ((->) r) where
---   pure x = (\_ -> x)
---   f <*> g = \x -> f x (g x)
 
 data CMaybe a = CNothing | CJust Int a deriving (Show)
 
@@ -42,6 +41,26 @@ instance Functor CMaybe where
 --   pure :: a -> f a
 --   (<*>) :: f (a -> b) -> f a -> f b
 
+-- instance Applicative Maybe where
+--   pure = Just
+--   Nothing <*> _ = Nothing
+--   (Just f) <*> something = fmap f something
+
+-- instance Applicative [] where
+--   pure x = [x]
+--   fs <*> xs = [f x | f <- fs, x <- xs]
+
+-- instance Applicative IO where
+--   pure = return
+--   a <*> b = do
+--     f <- a
+--     x <- b
+--     return (f x)
+
+-- instance Applicative ((->) r) where
+--   pure x = (\_ -> x)
+--   f <*> g = \x -> f x (g x)
+
 myAction :: IO String
 myAction = do
   a <- getLine
@@ -52,6 +71,13 @@ myAction = do
 
 myAction' :: IO String
 myAction' = (++) <$> getLine <*> getLine
+
+sequenceA' :: (Applicative f) => [f a] -> f [a]
+sequenceA' [] = pure []
+sequenceA' (x : xs) = (:) <$> x <*> sequenceA' xs
+
+sequenceA'' :: (Applicative f) => [f a] -> f [a]
+sequenceA'' = foldr (liftA2 (:)) (pure [])
 
 reverseLine = do
   line <- getLine
@@ -161,4 +187,39 @@ applicativeZipList = do
   -- The (,,) function is the same as \x y z -> (x,y,z). Also, the (,) function is the same as \x y -> (x,y).
   print (getZipList $ (,,) <$> ZipList "dog" <*> ZipList "cat" <*> ZipList "rat")
 
-main = applicativeZipList
+applicativeLift = do
+  -- liftA2 takes a normal binary function and makes it a function that operates on 2 functors
+  print (fmap (\x -> [x]) (Just 4))
+  print (liftA2 (:) (Just 3) (Just [4]))
+  print ((:) <$> Just 3 <*> Just [4])
+  print (sequenceA [Just 1, Just 2])
+  print (sequenceA [Just 3, Just 2, Just 1])
+  print (sequenceA [Just 3, Nothing, Just 1])
+  print (sequenceA [(+ 3), (+ 2), (+ 1)] 3)
+  print (sequenceA [[1, 2, 3], [4, 5, 6]])
+  print ((:) <$> [1, 2, 3] <*> sequenceA [[4, 5, 6]])
+  print ((:) <$> [1, 2, 3] <*> ((:) <$> [4, 5, 6] <*> pure []))
+  print (sequenceA [[1, 2, 3], [4, 5, 6], [3, 4, 4], []])
+  print (map (\f -> f 7) [(> 4), (< 10), odd])
+  print (and $ map (\f -> f 7) [(> 4), (< 10), odd])
+  print (sequenceA [(> 4), (< 10), odd] 7)
+  print (and $ sequenceA [(> 4), (< 10), odd] 7)
+  print (sequenceA [[1, 2, 3], [4, 5, 6]])
+  print ([[x, y] | x <- [1, 2, 3], y <- [4, 5, 6]])
+  print (sequenceA [[1, 2], [3, 4]])
+  print ([[x, y] | x <- [1, 2], y <- [3, 4]])
+  print (sequenceA [[1, 2], [3, 4], [5, 6]])
+  print ([[x, y, z] | x <- [1, 2], y <- [3, 4], z <- [5, 6]])
+
+sequenceAGetLine = do
+  list <- sequenceA [getLine, getLine, getLine]
+  print(list)
+
+-- applicative laws
+-- pure f <*> x = fmap f x
+-- pure id <*> v = v
+-- pure (.) <*> u <*> v <*> w = u <*> (v <*> w)
+-- pure f <*> pure x /= pure (f x)
+-- u <*> pure y = pure ($ y) <*> u
+
+main = applicativeLift
