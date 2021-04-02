@@ -79,6 +79,24 @@ sequenceA' (x : xs) = (:) <$> x <*> sequenceA' xs
 sequenceA'' :: (Applicative f) => [f a] -> f [a]
 sequenceA'' = foldr (liftA2 (:)) (pure [])
 
+data ZipList' a = ZipList' [a]
+
+data ZipList'' a = ZipList''
+  { getZipList'' :: [a]
+  }
+
+newtype ZipList''' a = ZipList'''
+  { getZipList''' :: [a]
+  }
+
+data Profession = Fighter | Archer | Accountant
+
+data Race = Human | Elf | Orc | Goblin
+
+data PlayerCharacter = PlayerCharacter Race Profession
+
+newtype CharList = CharList { getCharList :: [Char] } deriving (Eq, Show)
+
 reverseLine = do
   line <- getLine
   let line' = reverse line
@@ -213,7 +231,7 @@ applicativeLift = do
 
 sequenceAGetLine = do
   list <- sequenceA [getLine, getLine, getLine]
-  print(list)
+  print (list)
 
 -- applicative laws
 -- pure f <*> x = fmap f x
@@ -222,4 +240,13 @@ sequenceAGetLine = do
 -- pure f <*> pure x /= pure (f x)
 -- u <*> pure y = pure ($ y) <*> u
 
-main = applicativeLift
+newtypeTest = do
+  -- 2 ways for the list type to be an applicative functor
+  print ([(+ 1), (* 100), (* 5)] <*> [1, 2, 3])
+  print (getZipList $ ZipList [(+ 1), (* 100), (* 5)] <*> ZipList [1, 2, 3])
+  print (getZipList''' $ ZipList''' [1, 2, 3])
+  print (CharList "This will be shown!")
+  print (CharList "benny" == CharList "benny")
+  print (CharList "benny" == CharList "oysters")
+
+main = newtypeTest
