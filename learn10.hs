@@ -95,7 +95,32 @@ data Race = Human | Elf | Orc | Goblin
 
 data PlayerCharacter = PlayerCharacter Race Profession
 
-newtype CharList = CharList { getCharList :: [Char] } deriving (Eq, Show)
+newtype CharList = CharList {getCharList :: [Char]} deriving (Eq, Show)
+
+newtype Pair b a = Pair {getPair :: (a, b)}
+
+instance Functor (Pair c) where
+  fmap f (Pair (x, y)) = Pair (f x, y)
+
+data CoolBool = CoolBool {getCoolBool :: Bool}
+
+helloMe :: CoolBool -> String
+helloMe (CoolBool _) = "hello"
+
+newtype CoolBool' = CoolBool' {getCoolBool' :: Bool}
+
+helloMe' :: CoolBool' -> String
+helloMe' (CoolBool' _) = "hello"
+
+class Monoid' m where
+  mempty' :: m
+  mappend' :: m -> m -> m
+  mconcat' :: [m] -> m
+  mconcat' = foldr mappend' mempty'
+
+instance Monoid' [a] where
+  mempty' = []
+  mappend' = (++)
 
 reverseLine = do
   line <- getLine
@@ -248,5 +273,54 @@ newtypeTest = do
   print (CharList "This will be shown!")
   print (CharList "benny" == CharList "benny")
   print (CharList "benny" == CharList "oysters")
+  print (getPair $ fmap (* 100) (Pair (2, 3)))
+  print (getPair $ fmap reverse (Pair ("london calling", 3)))
 
-main = newtypeTest
+newtypeLaziness = do
+  print (head [3, 4, 5, undefined, 2, undefined])
+  -- print (helloMe undefined ) -- this will fail
+  print (helloMe' undefined)
+
+monoidBasics = do
+  print (4 * 1)
+  print (1 * 9)
+  print ([1, 2, 3] ++ [])
+  print ([] ++ [0.5, 2.5])
+  -- associative
+  print ((3 * 2) * (8 * 5))
+  print (3 * (2 * (8 * 5)))
+  print ("la" ++ ("di" ++ "da"))
+  print (("la" ++ "di") ++ "da")
+  -- a monoid is when you have an associative binary function, and a value that acts as an identity with respect to that function
+  -- monoid laws
+  print ([] `mappend` [123, 234] == [123, 234])
+  print ([321, 432] `mappend` [] == [321, 432])
+  print (([1] `mappend` [2]) `mappend` [3] == [1] `mappend` ([2] `mappend` [3]))
+
+monoidList = do
+  print ([1, 2, 3] `mappend` [4, 5, 6])
+  print (("one" `mappend` "two") `mappend` "tree")
+  print ("one" `mappend` ("two" `mappend` "tree"))
+  print ("one" `mappend` "two" `mappend` "tree")
+  print ("pang" `mappend` mempty)
+  print (mconcat [[1, 2], [3, 6], [9]])
+  print (mempty :: [Integer])
+  -- order does matter for most monoids
+  print (mappend "one" "two")
+  print (mappend "two" "one")
+
+monoidProductAndSum = do
+  -- identity
+  print (1 * 4)
+  print (5 * 1)
+  -- associativity
+  print ((1 * 3) * 5)
+  print (1 * (3 * 5))
+  -- identity
+  print (0 + 4)
+  print (5 + 0)
+  -- associativity
+  print ((1 + 3) + 5)
+  print (1 + (3 + 5))
+
+main = monoidProductAndSum
