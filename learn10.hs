@@ -1,6 +1,7 @@
 import Control.Applicative
 import Data.Char
 import Data.List
+import Data.Monoid
 
 class Functor' f where -- for things that can be mapped over, f is a type that takes one arg, and is not concrete
 -- give me a function that makes a b from an a
@@ -121,6 +122,53 @@ class Monoid' m where
 instance Monoid' [a] where
   mempty' = []
   mappend' = (++)
+
+instance Num a => Monoid' (Product a) where
+  mempty' = Product 1
+  Product x `mappend'` Product y = Product (x * y)
+
+instance Monoid' Any where
+  mempty' = Any False
+  Any x `mappend'` Any y = Any (x || y)
+
+instance Monoid' All where
+  mempty' = All True
+  All x `mappend'` All y = All (x && y)
+
+instance Monoid' Ordering where
+  mempty' = EQ
+  LT `mappend'` _ = LT
+  EQ `mappend'` y = y
+  GT `mappend'` _ = GT
+
+lengthCompare :: String -> String -> Ordering
+lengthCompare x y =
+  let a = length x `compare` length y
+      b = x `compare` y
+   in if a == EQ then b else a
+
+lengthCompare' :: String -> String -> Ordering
+lengthCompare' x y = (length x `compare` length y) `mappend` (x `compare` y)
+
+lengthCompare'' :: String -> String -> Ordering
+lengthCompare'' x y =
+  (length x `compare` length y)
+    `mappend` (vowels x `compare` vowels y)
+    `mappend` (x `compare` y)
+  where
+    vowels = length . filter (`elem` "aeiou")
+
+-- Maybe a is only a Monoid if a is a Monoid
+instance Monoid' a => Monoid' (Maybe a) where
+  mempty' = Nothing
+  Nothing `mappend'` m = m
+  m `mappend'` Nothing = m
+  Just m1 `mappend'` Just m2 = Just (m1 `mappend'` m2)
+
+instance Monoid' (First a) where
+  mempty' = First Nothing
+  First (Just x) `mappend'` _ = First (Just x)
+  First Nothing `mappend'` x = x
 
 reverseLine = do
   line <- getLine
@@ -322,5 +370,49 @@ monoidProductAndSum = do
   -- associativity
   print ((1 + 3) + 5)
   print (1 + (3 + 5))
+  -- product
+  print (getProduct $ Product 3 `mappend'` Product 9)
+  print (getProduct $ Product 3 `mappend'` mempty')
+  print (getProduct $ Product 3 `mappend'` Product 4 `mappend'` Product 2)
+  print (getProduct . mconcat . map Product $ [3, 4, 2])
+  -- sum
+  print (getSum $ Sum 2 `mappend` Sum 9)
+  print (getSum $ mempty `mappend` Sum 9)
+  print (getSum . mconcat . map Sum $ [1, 2, 3])
 
-main = monoidProductAndSum
+monoidAnyAll = do
+  print (getAny $ Any True `mappend` Any False)
+  print (getAny $ mempty `mappend` Any False)
+  print (getAny . mconcat . map Any $ [False, False, False, True])
+  print (getAny $ mempty `mappend` mempty)
+  print (getAll $ mempty `mappend` All True)
+  print (getAll $ mempty `mappend` All False)
+  print (getAll . mconcat . map All $ [True, True, True])
+  print (getAll . mconcat . map All $ [True, True, False])
+
+monoidOrdering = do
+  print (compare 1 2)
+  print (compare 2 2)
+  print (compare 3 2)
+  print (LT `mappend` GT)
+  print (GT `mappend` LT)
+  print (mempty `mappend` LT)
+  print (mempty `mappend` GT)
+  print (lengthCompare' "zen" "ants")
+  print (lengthCompare' "zen" "ant")
+  print (lengthCompare'' "zen" "anna")
+  print (lengthCompare'' "zen" "ana")
+  print (lengthCompare'' "zen" "ann")
+
+monoidMaybe = do
+  print (Nothing `mappend` Just "andy")
+  print (Just LT `mappend` Nothing)
+  print (Just (Sum 3) `mappend` Just (Sum 4))
+  print (getFirst $ First (Just 'a') `mappend` First (Just 'b'))
+  print (getFirst $ First Nothing `mappend` First (Just 'b'))
+  print (getFirst $ First (Just 'a') `mappend` First Nothing)
+  print (getFirst . mconcat . map First $ [Nothing, Just 9, Just 10])
+  print (getLast . mconcat . map Last $ [Nothing, Just 9, Just 10])
+  print (getLast $ Last (Just "one") `mappend` Last (Just "two"))
+
+main = monoidMaybe
