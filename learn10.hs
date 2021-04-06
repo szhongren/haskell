@@ -170,6 +170,16 @@ instance Monoid' (First a) where
   First (Just x) `mappend'` _ = First (Just x)
   First Nothing `mappend'` x = x
 
+data Tree a = EmptyTree | Node a (Tree a) (Tree a) deriving (Show, Read, Eq)
+
+instance Functor Tree where
+  fmap f EmptyTree = EmptyTree
+  fmap f (Node x leftsub rightsub) = Node (f x) (fmap f leftsub) (fmap f rightsub)
+
+instance Foldable Tree where
+  foldMap f EmptyTree = mempty
+  foldMap f (Node x l r) = foldMap f l `mappend` f x `mappend` foldMap f r
+
 reverseLine = do
   line <- getLine
   let line' = reverse line
@@ -200,7 +210,7 @@ functorOver = do
   print (fmap (replicate 3) Nothing :: Maybe String)
   print (fmap (replicate 3) (Left "foo") :: Either String [[Char]]) -- failure
 
--- 2 monad laws
+-- 2 functor laws
 -- 1. fmap id = id
 -- 2. fmap (f . g) = fmap f . fmap g, or fmap (f . g) F = fmap f (fmap g F)
 idFmap = do
@@ -415,4 +425,17 @@ monoidMaybe = do
   print (getLast . mconcat . map Last $ [Nothing, Just 9, Just 10])
   print (getLast $ Last (Just "one") `mappend` Last (Just "two"))
 
-main = monoidMaybe
+foldable = do
+  print (foldr (*) 1 [1, 2, 3])
+  print (foldl (+) 2 (Just 9))
+  print (foldr (||) False (Just True))
+  let testTree = Node 5 (Node 3 (Node 1 EmptyTree EmptyTree) (Node 6 EmptyTree EmptyTree)) (Node 9 (Node 8 EmptyTree EmptyTree) (Node 10 EmptyTree EmptyTree))
+  print (testTree)
+  print (foldl (+) 0 testTree)
+  print (foldl (*) 1 testTree)
+  -- function passed to foldMap has to return a monoid
+  print (getAny $ foldMap (\x -> Any $ x == 3) testTree)
+  print (getAny $ foldMap (\x -> Any $ x > 15) testTree)
+  print (foldMap (\x -> [x]) testTree)
+
+main = foldable
