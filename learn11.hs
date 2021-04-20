@@ -72,6 +72,58 @@ banana _ = Nothing
 
 x -: f = f x
 
+foo :: Maybe String
+foo = Just 3 >>= (\x -> Just "!" >>= (\y -> Just (show x ++ y)))
+
+foo' :: Maybe String
+foo' = do
+  x <- Just 3
+  y <- Just "!"
+  Just (show x ++ y)
+
+marySue :: Maybe Bool
+marySue = Just 9 >>= (\x -> Just (x > 8))
+
+marySue' :: Maybe Bool
+marySue' = do
+  x <- Just 9
+  Just (x > 8)
+
+routine :: Maybe Pole
+routine = do
+  start <- return (0, 0)
+  first <- landLeft 2 start
+  second <- landRight 2 first
+  landLeft 1 second
+
+routine' :: Maybe Pole
+routine' =
+  case Just (0, 0) of
+    Nothing -> Nothing
+    Just start -> case landLeft 2 start of
+      Nothing -> Nothing
+      Just first -> case landRight 2 first of
+        Nothing -> Nothing
+        Just second -> landLeft 1 second
+
+routine'' :: Maybe Pole
+routine'' = do
+  start <- return (0, 0)
+  first <- landLeft 2 start
+  Nothing -- this is the same as >> Nothing
+  second <- landRight 2 first
+  landLeft 1 second
+
+justH :: Maybe Char 
+justH = do
+  (x:xs)  <- Just "hello"
+  return x
+
+wopwop :: Maybe Char
+wopwop = do
+  (x:xs) <- Just ""
+  return x
+
 applicativeRecap = do
   print ((*) <$> Just 2 <*> Just 8)
   print ((++) <$> Just "klingon" <*> Nothing)
@@ -123,5 +175,19 @@ pierreAndBirds = do
 
 doNotation = do
   print (Just 3 >>= (\x -> Just (show x ++ "!")))
+  print (Just 3 >>= (\x -> Just "!" >>= (\y -> Just (show x ++ y))))
+  print (let x = 3; y = "!" in Just (show x ++ y))
+  print ((Nothing :: Maybe Int) >>= (\x -> Just "!" >>= (\y -> Just (show x ++ y))))
+  print (Just 3 >>= (\x -> Nothing >>= (\y -> Just (show x ++ y))))
+  print (Just 3 >>= (\x -> Just "!" >>= (\y -> Nothing :: Maybe String)))
+  print (foo)
+  print (foo')
+  print (marySue)
+  print (marySue')
+  print (routine)
+  print (routine')
+  print (routine'')
+  print (justH)
+  print (wopwop)
 
-main = pierreAndBirds
+main = doNotation
