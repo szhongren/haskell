@@ -1,4 +1,5 @@
 import Data.Char
+import Data.List
 
 -- class Functor f where
 --   fmap :: (a -> b) -> f a -> f b
@@ -114,15 +115,41 @@ routine'' = do
   second <- landRight 2 first
   landLeft 1 second
 
-justH :: Maybe Char 
+justH :: Maybe Char
 justH = do
-  (x:xs)  <- Just "hello"
+  (x : xs) <- Just "hello"
   return x
 
 wopwop :: Maybe Char
 wopwop = do
-  (x:xs) <- Just ""
+  (x : xs) <- Just ""
   return x
+
+-- instance Monad [] where
+--   return x = [x]
+--   xs >>= f = concat (map f xs)
+--   fail _ = []
+
+listOfTuples :: [(Int, Char)]
+listOfTuples = do
+  n <- [1, 2]
+  ch <- ['a', 'b']
+  return (n, ch)
+
+class Monad m => MonadPlus m where
+  mzero :: m a
+  mplus :: m a -> m a -> m a
+
+guard :: (MonadPlus m) => Bool -> m ()
+guard True = return ()
+guard False = mzero
+
+instance MonadPlus [] where
+  mzero = []
+  mplus = (++)
+
+instance MonadPlus Maybe where
+  mzero = Nothing
 
 applicativeRecap = do
   print ((*) <$> Just 2 <*> Just 8)
@@ -190,4 +217,19 @@ doNotation = do
   print (justH)
   print (wopwop)
 
-main = doNotation
+listMonad = do
+  print ([3, 4, 5] >>= \x -> [x, - x])
+  print (foldr (++) [] (map (\x -> [x, - x]) [3, 4, 5]))
+  print ([] >>= \x -> ["bad", "mad", "rad"])
+  print ([1, 2, 3] >>= \x -> [] :: [Int])
+  print ([1, 2] >>= \n -> ['a', 'b'] >>= \ch -> return (n, ch))
+  print ([1, 2] >>= \n -> ['a', 'b'] >>= \ch -> return (n, ch) >>= \x -> return x >>= \(a, b) -> return (b, a))
+  print (listOfTuples)
+  print ([(n, ch) | n <- [1, 2], ch <- ['a', 'b']])
+  print ([x | x <- [1 .. 50], '7' `elem` show x])
+  print (guard (5 > 2) :: Maybe ())
+  print (guard (1 > 2) :: Maybe ())
+  print (guard (5 > 2) :: [()])
+  print (guard (1 > 2) :: [()])
+
+main = listMonad
