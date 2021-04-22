@@ -151,6 +151,56 @@ instance MonadPlus [] where
 instance MonadPlus Maybe where
   mzero = Nothing
 
+sevensOnly :: [Int]
+sevensOnly = do
+  x <- [1 .. 50]
+  guard ('7' `elem` show x)
+  return x
+
+type KnightPos = (Int, Int)
+
+moveKnight :: KnightPos -> [KnightPos]
+moveKnight (c, r) = do
+  (c', r') <-
+    [ (c + 2, r -1),
+      (c + 2, r + 1),
+      (c - 2, r -1),
+      (c - 2, r + 1),
+      (c + 1, r -2),
+      (c + 1, r + 2),
+      (c - 1, r -2),
+      (c - 1, r + 2)
+      ]
+  guard (c' `elem` [1 .. 8] && r' `elem` [1 .. 8])
+  return (c', r')
+
+moveKnight' :: KnightPos -> [KnightPos]
+moveKnight' (c, r) =
+  filter
+    onBoard
+    [ (c + 2, r -1),
+      (c + 2, r + 1),
+      (c -2, r -1),
+      (c -2, r + 1),
+      (c + 1, r -2),
+      (c + 1, r + 2),
+      (c -1, r -2),
+      (c -1, r + 2)
+    ]
+  where
+    onBoard (c, r) = c `elem` [1 .. 8] && r `elem` [1 .. 8]
+
+in3 :: KnightPos -> [KnightPos]
+in3 start = do
+  first <- moveKnight start
+  second <- moveKnight first
+  moveKnight second
+
+in3' start = return start >>= moveKnight >>= moveKnight >>= moveKnight
+
+canReachIn3 :: KnightPos -> KnightPos -> Bool
+canReachIn3 start end = end `elem` in3 start
+
 applicativeRecap = do
   print ((*) <$> Just 2 <*> Just 8)
   print ((++) <$> Just "klingon" <*> Nothing)
@@ -231,5 +281,43 @@ listMonad = do
   print (guard (1 > 2) :: Maybe ())
   print (guard (5 > 2) :: [()])
   print (guard (1 > 2) :: [()])
+  print ([1 .. 50] >>= (\x -> guard ('7' `elem` show x) >> return x))
+  print (guard (5 > 2) >> return "cool" :: [String])
+  print (guard (1 > 2) >> return "cool" :: [String])
+  print (sevensOnly)
 
-main = listMonad
+knightMoves = do
+  print (moveKnight (6, 2))
+  print (moveKnight (8, 1))
+  print ((6, 2) `canReachIn3` (6, 1))
+  print ((6, 2) `canReachIn3` (7, 3))
+
+monadLaws = do
+  -- any thing can be an instance of the Monad class, but true monads must obey the monad laws:
+  -- 1. left identity, return x >>= f == f x
+  print (return 3 >>= (\x -> Just (x + 100000)))
+  print ((\x -> Just (x + 100000)) 3)
+  print (return "WoM" >>= (\x -> [x, x, x]))
+  print ((\x -> [x, x, x]) "WoM")
+  -- 2. right identity, m >>= return == m where m is a monadic value
+  print (Just "Move on up" >>= (\x -> return x))
+  print ([1, 2, 3, 4] >>= (\x -> return x))
+  putStrLn "Wah!" >>= (\x -> return x)
+  -- 3. associativity, (m >>= f) >>= g == m >>= (\x -> f x >>= g)
+  print (return (0, 0) >>= landRight 2 >>= landLeft 2 >>= landRight 2)
+  print (((return (0, 0) >>= landRight 2) >>= landLeft 2) >>= landRight 2)
+  print (return (0, 0) >>= (\x -> landRight 2 x >>= (\y -> landLeft 2 y >>= (\z -> landRight 2 z))))
+  let f x = [x, - x]
+  let g x = [x * 3, x * 2]
+  let h = f <=< g
+  print (h 3)
+
+-- regular composition
+(.) :: (b -> c) -> (a -> b) -> (a -> c)
+f . g = (\x -> f (g x))
+
+-- monadic composition
+(<=<) :: (Monad m) => (b -> m c) -> (a -> m b) -> (a -> m c)
+f <=< g = (\x -> g x >>= f)
+
+main = monadLaws
