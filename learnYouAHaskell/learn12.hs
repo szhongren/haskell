@@ -59,6 +59,32 @@ gcd' a b
   | b == 0 = a
   | otherwise = gcd' b (a `mod` b)
 
+gcd'' :: Int -> Int -> Writer [String] Int
+gcd'' a b
+  | b == 0 = do
+    tell ["finished with " ++ show a]
+    return a
+  | otherwise = do
+    tell [show a ++ " mod " ++ show b ++ " = " ++ show (a `mod` b)]
+    gcd'' b (a `mod` b)
+
+gcd''' :: Int -> Int -> Writer [String] Int
+gcd''' a b
+  | b == 0 = tell ["finished with " ++ show a] >> return a
+  | otherwise =
+    tell [show a ++ " mod " ++ show b ++ " = " ++ show (a `mod` b)]
+      >> gcd'' b (a `mod` b)
+
+gcdReverse :: Int -> Int -> Writer [String] Int
+gcdReverse a b
+  | b == 0 = do
+    tell ["finished with " ++ show a]
+    return a
+  | otherwise = do
+    result <- gcdReverse b (a `mod` b)
+    tell [show a ++ " mod " ++ show b ++ " = " ++ show (a `mod` b)]
+    return result
+
 writerMonad = do
   print (isBigGang' 3)
   print (isBigGang' 30)
@@ -82,5 +108,11 @@ writerMonad = do
   print (runWriter multWithLog')
   print (runWriter multWithLog'')
   print (runWriter multWithLog''')
+  print (gcd' 8 3)
+  print (runWriter (gcd'' 8 3))
+  print (runWriter (gcd''' 8 3))
+  print (fst $ runWriter (gcd''' 8 3))
+  mapM_ putStrLn $ snd $ runWriter (gcd''' 8 3)
+  mapM_ putStrLn $ snd $ runWriter (gcdReverse 8 3)
 
 main = writerMonad
