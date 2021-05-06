@@ -224,6 +224,41 @@ threeCoins = do
   c <- randomSt
   return (a, b, c)
 
+-- instance (Error e) => Monad (Either e) where
+--   return x = Right x
+--   Right x >>= f = f x
+--   Left err >>= f = Left err
+--   fail msg = Left (strMsg msg)
+
+-- liftM :: (Monad m) => (a -> b) -> m a -> m b
+-- liftM f m = do
+--   x <- m
+--   return (f x)
+
+-- fmap :: (Functor m) => (a -> b) -> m a -> m b
+
+-- (<*>) :: (Applicative f) => f (a -> b) -> f a -> f b
+
+-- implementation of <*> from applicatives but from Monad features
+-- ap :: (Monad m) => m (a -> b) -> m a -> m b
+-- ap mf m = do
+--   f <- mf
+--   x <- m
+--   return (f x)
+
+-- liftA2 :: (Applicative f) => (a -> b -> c) -> f a -> f b -> f c
+-- liftA2 f x y = f <$> x <*> y
+
+-- join :: (Monad m) => m (m a) -> m a
+-- join mm = do
+--   m <- mm
+--   m
+
+joinedMaybes :: Maybe Int
+joinedMaybes = do
+  m <- Just (Just 8)
+  m
+
 writerMonad = do
   print (isBigGang' 3)
   print (isBigGang' 30)
@@ -276,4 +311,38 @@ stateMonad = do
   print (runState stackyStack [1, 2, 4])
   print (runState threeCoins (mkStdGen 33))
 
-main = stateMonad
+errorMonad = do
+  print (Right 100 >>= \x -> return (x + 1) :: Either String Int)
+  print (Left "boom" >>= \x -> return (x + 1))
+  print (Right 100 >>= \x -> Left "no way!" :: Either String Int)
+
+usefulMonadicFunctions = do
+  print (liftM (* 3) (Just 8))
+  print (fmap (* 3) (Just 8))
+  print (runWriter $ liftM not $ writer (True, "chickpeas"))
+  print (runWriter $ fmap not $ writer (True, "chickpeas"))
+  print (runState (liftM (+ 100) pop) [1, 2, 3, 4])
+  print (runState (fmap (+ 100) pop) [1, 2, 3, 4])
+  print ((+) <$> Just 3 <*> Just 5)
+  print ((+) <$> Just 3 <*> Nothing)
+  print ((+) <$> Right 3 <*> Left "test")
+  print ((+) <$> Right 3 <*> Right 2 :: Either String Int)
+  print (Just (+ 3) <*> Just 4)
+  print (Just (+ 3) `ap` Just 4)
+  print ([(+ 1), (+ 2), (+ 3)] <*> [10, 11])
+  print ([(+ 1), (+ 2), (+ 3)] `ap` [10, 11])
+  print ((+ 3) <$> Just 4)
+  print ((+) <$> Just 3 <*> Just 4)
+  print (join (Just (Just 9)))
+  print (join (Just Nothing :: Maybe (Maybe Int)))
+  print (join Nothing :: Maybe Int)
+  print (join [[1, 2, 3], [4, 5, 6]])
+  print (runWriter $ join (writer (writer (1, "aaa"), "bbb")))
+  print (join (Right (Right 9)) :: Either String Int)
+  print (join (Right (Left "error")) :: Either String Int)
+  print (join (Left "error") :: Either String Int)
+  print (runState (join (state $ \s -> (push 10, 1 : 2 : s))) [0, 0, 0])
+
+-- The lambda here takes a state and puts 2 and 1 onto the stack and presents push 10 as its result. So when this whole thing is flattened with join and then run, it first puts 2 and 1 onto the stack and then push 10 gets carried out, pushing a 10 on to the top.
+
+main = usefulMonadicFunctions
