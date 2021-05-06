@@ -2,6 +2,7 @@ import Control.Monad.State
 import Control.Monad.Writer
 import qualified Data.ByteString.Lazy as B
 import Data.Monoid
+import System.Random
 
 isBigGang :: Int -> Bool
 isBigGang x = x > 9
@@ -107,18 +108,18 @@ fromDiffList (DiffList f) = f []
 instance Semigroup (DiffList a)
 
 instance Monoid (DiffList a) where
-  mempty = DiffList (\xs -> [] ++ xs)
-  (DiffList f) `mappend` (DiffList g) = DiffList (\xs -> f (g xs))
+  mempty = DiffList ([] ++)
+  (DiffList f) `mappend` (DiffList g) = DiffList (f . g)
 
 finalCountDown :: Int -> Writer [String] ()
-finalCountDown 0 = do
+finalCountDown 0 =
   tell ["0"]
 finalCountDown x = do
   finalCountDown (x - 1)
   tell [show x]
 
 finalCountDown' :: Int -> Writer (DiffList String) ()
-finalCountDown' 0 = do
+finalCountDown' 0 =
   tell (toDiffList ["0"])
 finalCountDown' x = do
   finalCountDown' (x - 1)
@@ -142,12 +143,15 @@ addStuff' x =
 
 type Stack = [Int]
 
+-- returns (result, state)
 pop' :: Stack -> (Int, Stack)
 pop' (x : xs) = (x, xs)
 
+-- returns (result, state)
 push' :: Int -> Stack -> ((), Stack)
 push' a xs = ((), a : xs)
 
+-- returns (result, state)
 stackManip' :: Stack -> (Int, Stack)
 stackManip' stack =
   let ((), newStack1) = push' 3 stack
@@ -169,12 +173,14 @@ pop = state $ \(x : xs) -> (x, xs)
 push :: Int -> State Stack ()
 push a = state $ \xs -> ((), a : xs)
 
+-- State Stack Int == Stack -> (Int, Stack)
 stackManip :: State Stack Int
 stackManip = do
   push 3
   a <- pop
   pop
 
+-- we implicitly pass the state result of each operation to the next operation
 stackStuff :: State Stack ()
 stackStuff = do
   a <- pop
@@ -190,6 +196,33 @@ moreStack = do
   if a == 100
     then stackStuff
     else return ()
+
+stackyStack :: State Stack ()
+stackyStack = do
+  stackNow <- get
+  if stackNow == [1, 2, 3]
+    then put [8, 3, 1]
+    else put [9, 2, 1]
+
+-- random :: (RandomGen g, Random a) => g -> (a, g)
+-- takes a random generator, and returns a random number and a new generator
+
+randomSt :: (RandomGen g, Random a) => State g a
+randomSt = state random
+
+threeCoins' :: StdGen -> (Bool, Bool, Bool)
+threeCoins' gen =
+  let (firstCoin, newGen) = random gen
+      (secondCoin, newGen') = random newGen
+      (thirdCoin, newGen'') = random newGen'
+   in (firstCoin, secondCoin, thirdCoin)
+
+threeCoins :: State StdGen (Bool, Bool, Bool)
+threeCoins = do
+  a <- randomSt
+  b <- randomSt
+  c <- randomSt
+  return (a, b, c)
 
 writerMonad = do
   print (isBigGang' 3)
@@ -229,7 +262,7 @@ writerMonad = do
 readerMonad = do
   let f = (* 5)
   let g = (+ 3)
-  print ((fmap f g) 8)
+  print (fmap f g 8)
   let f = (+) <$> (* 2) <*> (+ 10)
   print (f 3)
   print (addStuff 3)
@@ -239,5 +272,8 @@ stateMonad = do
   print (stackManip' [5, 8, 2, 1])
   print (runState stackManip [5, 8, 2, 1])
   print (runState stackStuff [9, 0, 2, 1, 0])
+  print (runState stackyStack [1, 2, 3])
+  print (runState stackyStack [1, 2, 4])
+  print (runState threeCoins (mkStdGen 33))
 
 main = stateMonad
