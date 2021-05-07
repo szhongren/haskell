@@ -299,6 +299,30 @@ solveRPN st = do
   [result] <- foldM foldingFunction [] (words st)
   return result
 
+type KnightPos = (Int, Int)
+
+moveKnight :: KnightPos -> [KnightPos]
+moveKnight (c, r) = do
+  (c', r') <-
+    [ (c + 2, r -1),
+      (c + 2, r + 1),
+      (c - 2, r -1),
+      (c - 2, r + 1),
+      (c + 1, r -2),
+      (c + 1, r + 2),
+      (c - 1, r -2),
+      (c - 1, r + 2)
+      ]
+  guard (c' `elem` [1 .. 8] && r' `elem` [1 .. 8])
+  return (c', r')
+
+-- first get list of x moveKnight functions, then use foldr with <=< to compose them together, then take the starting position and feed it to the composition
+inMany :: Int -> KnightPos -> [KnightPos]
+inMany x start = return start >>= foldr (<=<) return (replicate x moveKnight)
+
+canReachIn :: Int -> KnightPos -> KnightPos -> Bool
+canReachIn x start end = end `elem` inMany x start
+
 writerMonad = do
   print (isBigGang' 3)
   print (isBigGang' 30)
@@ -406,4 +430,18 @@ safeRpnCalculator = do
   print (solveRPN "1 2 * 4")
   print (solveRPN "1 8 wharglbllargh")
 
-main = safeRpnCalculator
+composingMonadicFunctions = do
+  let f = (+ 1) . (* 100)
+  print (f 4)
+  -- <=< is the same as composition just for monadic functions
+  let g = (\x -> return (x + 1)) <=< (\x -> return (x * 100))
+  print (Just 4 >>= g)
+  let h = foldr (.) id [(+ 1), (* 100), (+ 1)]
+  print (h 1)
+  print (moveKnight (6, 2))
+  print (moveKnight (8, 1))
+  print (canReachIn 3 (6, 2) (6, 1))
+  print (canReachIn 3 (6, 2) (7, 3))
+  print (canReachIn 4 (6, 2) (7, 3))
+
+main = composingMonadicFunctions
