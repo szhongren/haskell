@@ -2,6 +2,7 @@ import Control.Monad.State
 import Control.Monad.Writer
 import qualified Data.ByteString.Lazy as B
 import Data.Monoid
+import Debug.Trace
 import System.Random
 
 isBigGang :: Int -> Bool
@@ -259,6 +260,45 @@ joinedMaybes = do
   m <- Just (Just 8)
   m
 
+-- filter :: (a -> Bool) -> [a] -> [b]
+-- filterM :: (Monad m) => (a -> m Bool) -> [a] -> m [b]
+
+keepSmall :: Int -> Writer [String] Bool
+keepSmall x
+  | x < 4 = do
+    tell ["Keeping" ++ show x]
+    return True
+  | otherwise = do
+    tell [show x ++ " is too large, chucking it"]
+    return False
+
+powerset :: [a] -> [[a]]
+powerset xs = filterM (\x -> [True, False]) xs
+
+-- foldl :: (a -> b -> a) -> a -> [b] -> a
+-- foldM :: (Monad m) => (a -> b -> m a) -> a -> [b] -> m a
+
+binSmalls :: Int -> Int -> Maybe Int
+binSmalls acc x
+  | x > 9 = Nothing
+  | otherwise = Just (acc + x)
+
+foldingFunction :: [Double] -> String -> Maybe [Double]
+foldingFunction (x : y : ys) "*" = return ((x * y) : ys)
+foldingFunction (x : y : ys) "+" = return ((x + y) : ys)
+foldingFunction (x : y : ys) "-" = return ((x - y) : ys)
+foldingFunction xs numberString = liftM (: xs) (readMaybe numberString)
+
+readMaybe :: (Read a) => String -> Maybe a
+readMaybe st = case reads st of
+  [(x, "")] -> Just x
+  _ -> Nothing
+
+solveRPN :: String -> Maybe Double
+solveRPN st = do
+  [result] <- foldM foldingFunction [] (words st)
+  return result
+
 writerMonad = do
   print (isBigGang' 3)
   print (isBigGang' 30)
@@ -342,7 +382,28 @@ usefulMonadicFunctions = do
   print (join (Right (Left "error")) :: Either String Int)
   print (join (Left "error") :: Either String Int)
   print (runState (join (state $ \s -> (push 10, 1 : 2 : s))) [0, 0, 0])
+  -- The lambda here takes a state and puts 2 and 1 onto the stack and presents push 10 as its result. So when this whole thing is flattened with join and then run, it first puts 2 and 1 onto the stack and then push 10 gets carried out, pushing a 10 on to the top.
+  -- m >>= f always equals join (fmap f m)
+  print (filter (\x -> x < 4) [9, 1, 5, 2, 10, 3])
+  print (fst $ runWriter $ filterM keepSmall [9, 1, 5, 2, 10, 3])
+  mapM_ putStrLn $ snd $ runWriter $ filterM keepSmall [9, 1, 5, 2, 10, 3]
+  print (powerset [1, 2, 3])
+  print (foldl (\acc x -> acc + x) 0 [2, 8, 3, 1])
+  print (foldM binSmalls 0 [2, 8, 3, 1])
+  print (foldM binSmalls 0 [2, 11, 3, 1])
 
--- The lambda here takes a state and puts 2 and 1 onto the stack and presents push 10 as its result. So when this whole thing is flattened with join and then run, it first puts 2 and 1 onto the stack and then push 10 gets carried out, pushing a 10 on to the top.
+safeRpnCalculator = do
+  print (readMaybe "1" :: Maybe Int)
+  print (readMaybe "GO TO HELL" :: Maybe Int)
+  print (foldingFunction [3, 2] "*")
+  print (foldingFunction [3, 2, 5] "*")
+  print (foldingFunction [3, 2] "-")
+  print (foldingFunction [] "*")
+  print (foldingFunction [] "1")
+  print (foldingFunction [] "1 wawawawa")
+  print (solveRPN "1 2 * 4 +")
+  print (solveRPN "1 2 * 4 + 5 *")
+  print (solveRPN "1 2 * 4")
+  print (solveRPN "1 8 wharglbllargh")
 
-main = usefulMonadicFunctions
+main = safeRpnCalculator
