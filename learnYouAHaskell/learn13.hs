@@ -50,12 +50,13 @@ elemAt [] (Node x _ _) = x
 
 type Breadcrumbs' = [Direction]
 
-goLeft' :: (Tree a, Breadcrumbs') -> (Tree a, Breadcrumbs')
-goLeft' (Node _ l _, bs) = (l, L : bs)
+goLeft'' :: (Tree a, Breadcrumbs') -> (Tree a, Breadcrumbs')
+goLeft'' (Node _ l _, bs) = (l, L : bs)
 
-goRight' :: (Tree a, Breadcrumbs') -> (Tree a, Breadcrumbs')
-goRight' (Node _ _ r, bs) = (r, R : bs)
+goRight'' :: (Tree a, Breadcrumbs') -> (Tree a, Breadcrumbs')
+goRight'' (Node _ _ r, bs) = (r, R : bs)
 
+(-:) :: t1 -> (t1 -> t2) -> t2
 x -: f = f x
 
 data Crumb a = LeftCrumb a (Tree a) | RightCrumb a (Tree a) deriving (Show)
@@ -74,10 +75,32 @@ goUp (t, RightCrumb x l : bs) = (Node x l t, bs)
 
 type Zipper a = (Tree a, Breadcrumbs a)
 
+modify :: (a -> a) -> Zipper a -> Zipper a
+modify f (Node x l r, bs) = (Node (f x) l r, bs)
+modify f (Empty, bs) = (Empty, bs)
+
+attach :: Tree a -> Zipper a -> Zipper a
+attach t (_, bs) = (t, bs)
+
+topMost :: Zipper a -> Zipper a
+topMost (t, []) = (t, [])
+topMost z = topMost (goUp z)
+
+data List a = EmptyList | Cons a (List a) deriving (Show, Read, Eq, Ord)
+
 takingAWalk = do
   let newTree = changeToP' [R, L] freeTree
   print (elemAt [R, L] newTree)
-  print (goLeft' (goRight' (freeTree, [])))
-  print ((freeTree, []) -: goRight' -: goLeft')
+  print (goLeft'' (goRight'' (freeTree, [])))
+  print ((freeTree, []) -: goRight'' -: goLeft'')
+  print (modify (\_ -> 'P') (goRight (goLeft (freeTree, []))))
+  let newFocus = (freeTree, []) -: goLeft -: goRight -: modify (\_ -> 'P')
+  print (newFocus)
+  print (modify (\_ -> 'X') (goUp newFocus))
+  print (newFocus -: goUp -: modify (\_ -> 'X'))
+  let farLeft = (freeTree, []) -: goLeft -: goLeft -: goLeft -: goLeft
+  let attachedTree = farLeft -: attach (Node 'Z' Empty Empty)
+  print (attachedTree)
+  print (attachedTree -: topMost)
 
 main = takingAWalk
