@@ -1,3 +1,5 @@
+import Data.List
+
 data Tree a = Empty | Node a (Tree a) (Tree a) deriving (Show)
 
 freeTree :: Tree Char
@@ -88,6 +90,70 @@ topMost z = topMost (goUp z)
 
 data List a = EmptyList | Cons a (List a) deriving (Show, Read, Eq, Ord)
 
+type ListZipper a = ([a], [a])
+
+goForward :: ListZipper a -> ListZipper a
+goForward (x : xs, bs) = (xs, x : bs)
+
+goBackward :: ListZipper a -> ListZipper a
+goBackward (xs, b : bs) = (b : xs, bs)
+
+type Name = String
+
+type Data = String
+
+data FSItem = File String String | Folder String [FSItem] deriving (Show)
+
+myDisk :: FSItem
+myDisk =
+  Folder
+    "root"
+    [ File "goat_yelling_like_man.wmv" "baaaaaa",
+      File "pope_time.avi" "god bless",
+      Folder
+        "pics"
+        [ File "ape_throwing_up.jpg" "bleargh",
+          File "watermelon_smash.gif" "smash!!",
+          File "skull_man(scary).bmp" "Yikes!"
+        ],
+      File "dijon_poupon.doc" "best mustard",
+      Folder
+        "programs"
+        [ File "fartwizard.exe" "10gotofart",
+          File "owl_bandit.dmg" "mov eax, h00t",
+          File "not_a_virus.exe" "really not a virus",
+          Folder
+            "source code"
+            [ File "best_hs_prog.hs" "main = print (fix error)",
+              File "random.hs" "main = print 4"
+            ]
+        ]
+    ]
+
+-- 2 [FSItem] because we want to keep files before and after the current item
+data FSCrumb = FSCrumb Name [FSItem] [FSItem] deriving (Show)
+
+type FSZipper = (FSItem, [FSCrumb])
+
+fsUp :: FSZipper -> FSZipper
+fsUp (item, FSCrumb name ls rs : bs) = (Folder name (ls ++ [item] ++ rs), bs)
+
+fsTo :: Name -> FSZipper -> FSZipper
+fsTo name (Folder folderName items, bs) =
+  let (ls, item : rs) = break (nameIs name) items
+   in (item, FSCrumb folderName ls rs : bs)
+
+nameIs :: Name -> FSItem -> Bool
+nameIs name (Folder folderName _) = name == folderName
+nameIs name (File folderName _) = name == folderName
+
+fsRename :: Name -> FSZipper -> FSZipper
+fsRename newName (Folder name items, bs) = (Folder newName items, bs)
+fsRename newName (File name dat, bs) = (File newName dat, bs)
+
+fsNewFile :: FSItem -> FSZipper -> FSZipper
+fsNewFile item (Folder folderName items, bs) = (Folder folderName (item : items), bs)
+
 takingAWalk = do
   let newTree = changeToP' [R, L] freeTree
   print (elemAt [R, L] newTree)
@@ -102,5 +168,18 @@ takingAWalk = do
   let attachedTree = farLeft -: attach (Node 'Z' Empty Empty)
   print (attachedTree)
   print (attachedTree -: topMost)
+  let xs = [1, 2, 3, 4]
+  print (goForward (xs, []))
+  print (goForward ([2, 3, 4], [1]))
+  print (goForward ([3, 4], [2, 1]))
+  print (goBackward ([4], [3, 2, 1]))
+  let newFsFocus = (myDisk, []) -: fsTo "pics" -: fsTo "skull_man(scary).bmp"
+  print (newFsFocus)
+  print (fst newFsFocus)
+  let newFsFocus2 = newFsFocus -: fsUp -: fsTo "watermelon_smash.gif"
+  print (newFsFocus2)
+  print (fst newFsFocus2)
+  print ((myDisk, []) -: fsTo "pics" -: fsRename "cspi" -: fsUp)
+  print ((myDisk, []) -: fsTo "pics" -: fsNewFile (File "heh.jpg" "lol") -: fsUp)
 
 main = takingAWalk
