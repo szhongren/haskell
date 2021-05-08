@@ -1,7 +1,9 @@
+import Control.Monad
 import Control.Monad.State
 import Control.Monad.Writer
 import qualified Data.ByteString.Lazy as B
 import Data.Monoid
+import Data.Ratio
 import Debug.Trace
 import System.Random
 
@@ -323,6 +325,59 @@ inMany x start = return start >>= foldr (<=<) return (replicate x moveKnight)
 canReachIn :: Int -> KnightPos -> KnightPos -> Bool
 canReachIn x start end = end `elem` inMany x start
 
+newtype Prob a = Prob {getProd :: [(a, Rational)]} deriving (Show)
+
+instance Functor Prob where
+  fmap f (Prob xs) = Prob $ map (\(x, p) -> (f x, p)) xs
+
+thisSituation :: Prob (Prob Char)
+thisSituation =
+  Prob
+    [ (Prob [('a', 1 % 2), ('b', 1 % 2)], 1 % 4),
+      (Prob [('c', 1 % 2), ('d', 1 % 2)], 3 % 4)
+    ]
+
+-- to flatten this, we have to wrap the final list in a Prob, which we get by concating from a list of Probs that we mapped multAll to
+-- multAll should take an inner Prob, and the total probability of that Prob, and multiply in by each probability in each innner Prob
+flatten :: Prob (Prob a) -> Prob a
+flatten (Prob xs) = Prob $ concat $ map multAll xs
+  where
+    multAll (Prob innerxs, p) = map (\(x, r) -> (x, p * r)) innerxs
+
+instance Applicative Prob
+
+instance Monad Prob where
+  return x = Prob [(x, 1 % 1)]
+  m >>= f = flatten (fmap f m)
+  fail _ = Prob []
+
+-- Monad laws
+-- 1. return a >>= k = k a
+-- 2. m >>= return = m
+-- 3. m >>= (\x -> k x >>= h) = (m >>= k) >>= h
+
+data Coin = Heads | Tails deriving (Show, Eq)
+
+coin :: Prob Coin
+coin = Prob [(Heads, 1 % 2), (Tails, 1 % 2)]
+
+loadedCoin :: Prob Coin
+loadedCoin = Prob [(Heads, 1 % 10), (Tails, 9 % 10)]
+
+flipThree :: Prob Bool
+flipThree = do
+  a <- coin
+  b <- coin
+  c <- loadedCoin
+  return (all (== Tails) [a, b, c])
+
+flipThree' :: Prob Bool
+flipThree' = do
+  a <- loadedCoin
+  b <- loadedCoin
+  c <- loadedCoin
+  return (all (== Tails) [a, b, c])
+
 writerMonad = do
   print (isBigGang' 3)
   print (isBigGang' 30)
@@ -444,4 +499,24 @@ composingMonadicFunctions = do
   print (canReachIn 3 (6, 2) (7, 3))
   print (canReachIn 4 (6, 2) (7, 3))
 
-main = composingMonadicFunctions
+makingMonads = do
+  print ([(3, 0.5), (5, 0.25), (9, 0.25)])
+  print (1 % 4)
+  print (1 % 2 + 1 % 2)
+  print (1 % 3 + 5 % 4)
+  print ([(3, 1 % 2), (5, 1 % 4), (9, 1 % 4)])
+  print (fmap negate (Prob [(3, 1 % 2), (5, 1 % 4), (9, 1 % 4)]))
+  -- 1. return a >>= k = k a
+  print (return 1 >>= (\x -> Prob [(x, 1 % x), (x + 1, (x - 1) % x)]))
+  print ((\x -> Prob [(x, 1 % x), (x + 1, (x - 1) % x)]) 1)
+  print (return 5 >>= (\x -> Prob [(x, 1 % x), (x + 1, (x - 1) % x)]))
+  print ((\x -> Prob [(x, 1 % x), (x + 1, (x - 1) % x)]) 5)
+  -- 2. m >>= return = m
+  print ((Prob [(1, 1 % 2), (2, 1 % 2)]) >>= return)
+  print ((Prob [(1, 1 % 2), (2, 1 % 2)]))
+  -- 3. m >>= (\x -> k x >>= h) = (m >>= k) >>= h
+  print ("I don't know how to show this exactly, but it's basically saying that goruping of the composition does not matter")
+  print (flipThree)
+  print (flipThree')
+
+main = makingMonads
