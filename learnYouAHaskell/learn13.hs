@@ -65,28 +65,28 @@ data Crumb a = LeftCrumb a (Tree a) | RightCrumb a (Tree a) deriving (Show)
 
 type Breadcrumbs a = [Crumb a]
 
-goLeft :: (Tree a, Breadcrumbs a) -> (Tree a, Breadcrumbs a)
-goLeft (Node x l r, bs) = (l, LeftCrumb x r : bs)
+goLeft' :: (Tree a, Breadcrumbs a) -> (Tree a, Breadcrumbs a)
+goLeft' (Node x l r, bs) = (l, LeftCrumb x r : bs)
 
-goRight :: (Tree a, Breadcrumbs a) -> (Tree a, Breadcrumbs a)
-goRight (Node x l r, bs) = (r, RightCrumb x l : bs)
+goRight' :: (Tree a, Breadcrumbs a) -> (Tree a, Breadcrumbs a)
+goRight' (Node x l r, bs) = (r, RightCrumb x l : bs)
 
-goUp :: (Tree a, Breadcrumbs a) -> (Tree a, Breadcrumbs a)
-goUp (t, LeftCrumb x r : bs) = (Node x t r, bs)
-goUp (t, RightCrumb x l : bs) = (Node x l t, bs)
+goUp' :: (Tree a, Breadcrumbs a) -> (Tree a, Breadcrumbs a)
+goUp' (t, LeftCrumb x r : bs) = (Node x t r, bs)
+goUp' (t, RightCrumb x l : bs) = (Node x l t, bs)
 
 type Zipper a = (Tree a, Breadcrumbs a)
 
-modify :: (a -> a) -> Zipper a -> Zipper a
-modify f (Node x l r, bs) = (Node (f x) l r, bs)
-modify f (Empty, bs) = (Empty, bs)
+modify' :: (a -> a) -> Zipper a -> Zipper a
+modify' f (Node x l r, bs) = (Node (f x) l r, bs)
+modify' f (Empty, bs) = (Empty, bs)
 
-attach :: Tree a -> Zipper a -> Zipper a
-attach t (_, bs) = (t, bs)
+attach' :: Tree a -> Zipper a -> Zipper a
+attach' t (_, bs) = (t, bs)
 
-topMost :: Zipper a -> Zipper a
-topMost (t, []) = (t, [])
-topMost z = topMost (goUp z)
+topMost' :: Zipper a -> Zipper a
+topMost' (t, []) = (t, [])
+topMost' z = topMost' (goUp' z)
 
 data List a = EmptyList | Cons a (List a) deriving (Show, Read, Eq, Ord)
 
@@ -154,20 +154,33 @@ fsRename newName (File name dat, bs) = (File newName dat, bs)
 fsNewFile :: FSItem -> FSZipper -> FSZipper
 fsNewFile item (Folder folderName items, bs) = (Folder folderName (item : items), bs)
 
+goLeft :: Zipper a -> Maybe (Zipper a)
+goLeft (Node x l r, bs) = Just (l, LeftCrumb x r : bs)
+goLeft (Empty, _) = Nothing
+
+goRight :: Zipper a -> Maybe (Zipper a)
+goRight (Node x l r, bs) = Just (r, RightCrumb x l : bs)
+goRight (Empty, _) = Nothing
+
+goUp :: Zipper a -> Maybe (Zipper a)
+goUp (t, LeftCrumb x r : bs) = Just (Node x t r, bs)
+goUp (t, RightCrumb x l : bs) = Just (Node x l t, bs)
+goUp (_, []) = Nothing
+
 takingAWalk = do
   let newTree = changeToP' [R, L] freeTree
   print (elemAt [R, L] newTree)
   print (goLeft'' (goRight'' (freeTree, [])))
   print ((freeTree, []) -: goRight'' -: goLeft'')
-  print (modify (\_ -> 'P') (goRight (goLeft (freeTree, []))))
-  let newFocus = (freeTree, []) -: goLeft -: goRight -: modify (\_ -> 'P')
+  print (modify' (\_ -> 'P') (goRight' (goLeft' (freeTree, []))))
+  let newFocus = (freeTree, []) -: goLeft' -: goRight' -: modify' (\_ -> 'P')
   print (newFocus)
-  print (modify (\_ -> 'X') (goUp newFocus))
-  print (newFocus -: goUp -: modify (\_ -> 'X'))
-  let farLeft = (freeTree, []) -: goLeft -: goLeft -: goLeft -: goLeft
-  let attachedTree = farLeft -: attach (Node 'Z' Empty Empty)
+  print (modify' (\_ -> 'X') (goUp' newFocus))
+  print (newFocus -: goUp' -: modify' (\_ -> 'X'))
+  let farLeft = (freeTree, []) -: goLeft' -: goLeft' -: goLeft' -: goLeft'
+  let attachedTree = farLeft -: attach' (Node 'Z' Empty Empty)
   print (attachedTree)
-  print (attachedTree -: topMost)
+  print (attachedTree -: topMost')
   let xs = [1, 2, 3, 4]
   print (goForward (xs, []))
   print (goForward ([2, 3, 4], [1]))
@@ -181,5 +194,12 @@ takingAWalk = do
   print (fst newFsFocus2)
   print ((myDisk, []) -: fsTo "pics" -: fsRename "cspi" -: fsUp)
   print ((myDisk, []) -: fsTo "pics" -: fsNewFile (File "heh.jpg" "lol") -: fsUp)
+  print (goLeft (Empty :: Tree Int, []))
+  print (goLeft (Node 'A' Empty Empty, []))
+  let coolTree = Node 1 Empty (Node 3 Empty Empty) :: Tree Int
+  print (return (coolTree, []) >>= goRight)
+  print (return (coolTree, []) >>= goRight >>= goRight)
+  print (return (coolTree, []) >>= goRight >>= goRight >>= goRight)
+  print (return (coolTree, []) >>= goRight >>= goRight >>= goRight >>= goRight)
 
 main = takingAWalk
