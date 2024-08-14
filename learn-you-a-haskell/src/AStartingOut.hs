@@ -37,6 +37,8 @@ functions = do
   print ("min 9 10 = " ++ show (min 9 10 :: Int))
   print ("max 100 101 = " ++ show (max 100 101 :: Int))
 
+-- baby's first functions
+
 doubleMe :: (Num a) => a -> a
 doubleMe x = x + x
 
@@ -52,7 +54,23 @@ doubleSmallNumber x = if x > 100 then x else x * 2
 doubleSmallNumber' :: (Ord a, Num a) => a -> a
 doubleSmallNumber' x = (if x > 100 then x else x * 2) + 1
 
-run :: IO ()
+conanO'Brien :: String
+conanO'Brien = "It's a-me, Conan O'Brien!"
+
+-- an intro to lists
+
+lostNumbers :: [Integer]
+lostNumbers = [4, 8, 15, 16, 23, 42]
+
+listOps :: IO ()
+listOps = do
+  print ([1, 2, 3, 4] ++ [9, 10, 11, 12])
+  print ("hello" ++ " " ++ "world")
+  print (['w', 'o'] ++ ['o', 't'])
+  print (5 : [1, 2, 3, 4, 5])
+  print ("steve Buscemi" !! 6)
+  print ([9.4, 33.2, 96.2, 11.2, 23.25] !! 1)
+
 run = do
   simpleArithmetic
   precedence
@@ -64,3 +82,4 @@ run = do
   print (doubleUs 4 9)
   print (doubleUs 2.3 34.2)
   print (doubleUs 28 88 + doubleMe 123)
+  print conanO'Brien
